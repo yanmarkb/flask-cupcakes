@@ -47,6 +47,8 @@ class CupcakeViewsTestCase(TestCase):
         db.session.add(self.cupcake)
         db.session.commit()
 
+        self.cupcake_id = self.cupcake.id
+
     def tearDown(self):
         Cupcake.query.delete()
         db.session.commit()
@@ -113,3 +115,32 @@ class CupcakeViewsTestCase(TestCase):
             })
 
             self.assertEqual(Cupcake.query.count(), 3)
+
+    def test_update_cupcake(self):
+        """Test updating a cupcake."""
+
+        with self.client as client:
+            data = {"flavor": "NewFlavor", "size": "NewSize", "rating": 10, "image": "http://new.com/cupcake.jpg"}
+            response = client.patch(f'/api/cupcakes/{self.cupcake_id}', json=data)
+            json_data = response.get_json()
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(json_data, {
+                "cupcake": {
+                    "id": self.cupcake_id,
+                    "flavor": "NewFlavor",
+                    "size": "NewSize",
+                    "rating": 10,
+                    "image": "http://new.com/cupcake.jpg"
+                }
+            })
+
+    def test_delete_cupcake(self):
+        """Test deleting a cupcake."""
+
+        with self.client as client:
+            response = client.delete(f'/api/cupcakes/{self.cupcake_id}')
+            json_data = response.get_json()
+
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(json_data, {"message": "Deleted"})

@@ -29,6 +29,9 @@ def create_tables():
     db.session.add(cupcake)
     db.session.commit()
 
+@app.route('/')
+def home():
+    return render_template('index.html')
 
 @app.route('/api/cupcakes', methods=['GET'])
 def get_all_cupcakes():
@@ -48,11 +51,14 @@ def get_single_cupcake(cupcake_id):
 
 @app.route('/api/cupcakes', methods=['POST'])
 def create_cupcake():
+    if request.json is None:
+        return jsonify(error="No JSON data provided"), 400
+
     new_cupcake = Cupcake(
-        flavor=request.json['flavor'],
-        size=request.json['size'],
-        rating=request.json['rating'],
-        image=request.json['image'] or "https://tinyurl.com/demo-cupcake"
+        flavor=request.json.get('flavor'),
+        size=request.json.get('size'),
+        rating=request.json.get('rating'),
+        image=request.json.get('image', "https://tinyurl.com/demo-cupcake")
     )
     db.session.add(new_cupcake)
     db.session.commit()
@@ -60,3 +66,26 @@ def create_cupcake():
         'cupcake': new_cupcake.to_dict()
     }
     return (jsonify(response_body), 201)
+
+@app.route('/api/cupcakes/<int:cupcake_id>', methods=['PATCH'])
+def update_cupcake(cupcake_id):
+    cupcake = Cupcake.query.get_or_404(cupcake_id)
+    if request.json is not None:
+        cupcake.flavor = request.json.get('flavor', cupcake.flavor)
+        cupcake.size = request.json.get('size', cupcake.size)
+        cupcake.rating = request.json.get('rating', cupcake.rating)
+        cupcake.image = request.json.get('image', cupcake.image)
+    else:
+        return jsonify(error="No JSON data provided"), 400
+
+    db.session.commit()
+
+    return jsonify(cupcake=cupcake.to_dict()), 200
+
+@app.route('/api/cupcakes/<int:cupcake_id>', methods=['DELETE'])
+def delete_cupcake(cupcake_id):
+    cupcake = Cupcake.query.get_or_404(cupcake_id)
+    db.session.delete(cupcake)
+    db.session.commit()
+
+    return jsonify(message="Deleted"), 200
